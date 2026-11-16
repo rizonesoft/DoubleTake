@@ -163,6 +163,7 @@ Dialogs are 480 wide, `panel` with a 1 px `stroke` border and radius 10, over th
 5. **Clear index.** Title `Clear the scan index?`, body `The next scan will read every photo again. Your photos and History are not touched.` Buttons `Clear index` and `Cancel`.
 6. **Problem notice.** The same bar with a warning glyph, for example `Could not read E:\Archive\2019. Check that the drive is connected.`
 7. **Accept every suggestion.** Title `Accept every suggestion?`, body `214 groups will be decided as suggested. You can still change any of them.` Buttons `Accept` and `Cancel`.
+8. **Start a new index.** Shown from the problem notice when the index cannot be opened. Title `Start a new index?`, body `The damaged index is kept beside the new one as index.bad-<date>.db. DoubleTake will try to bring your History across.` Buttons `Start a new index` and `Cancel`. It ends with the notice `New index started. 3 clean-ups were brought across.` or `New index started. History from before could not be read.`
 
 ## 10. Empty and edge states
 
@@ -173,7 +174,7 @@ Dialogs are 480 wide, `panel` with a 1 px `stroke` border and radius 10, over th
 | Review | Every group decided and recycled | Centred: `All done` in `pageTitle`, `327 photos moved to the Recycle Bin.`, and `Open History` |
 | Review | A photo on show was moved or deleted outside the app | The pane shows `This photo is no longer there` and the group drops that member |
 | History | No clean-up yet | Centred: `No clean-ups yet`, `Photos you recycle are listed here, ready to put back.` |
-| Any page | The index cannot be opened | Problem notice with `Clear index`, and Scan stays usable |
+| Any page | The index cannot be opened | Problem notice with `Start a new index` (section 9.8), and Scan stays usable |
 
 ## 11. Keyboard and accessibility
 

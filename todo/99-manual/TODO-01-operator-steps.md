@@ -50,7 +50,7 @@ The app's Website link, the download address in `version.json` and the update ch
 2. Regenerate. Done when: `version.json` points at the website's download page.
 
 - [ ] Record the website's address and its download page's address, as given by the owner, in `version.props` (`DoubleTakeWebsiteUrl`, `DoubleTakeDownloadUrl`). Done when: both are `https` addresses the owner confirmed. Cheaper substitute: a guessed domain.
-- [ ] Regenerate `version.json` with `python scripts/gen-version-json.py`. Done when: its `url` is the download page and `python scripts/gen-version-json.py --check` exits 0. Cheaper substitute: editing the file by hand.
+- [ ] Set the download address with `python scripts/gen-version-json.py --set-url <download page>`. Done when: `version.json`'s `url` is the download page and `python scripts/gen-version-json.py --check` exits 0. Cheaper substitute: editing the file by hand.
 - [ ] Commit: `release: project website address`
 
 **Test checkpoint:** `python scripts/gen-version-json.py --check` exits 0, and the `[update]` appcore tests pass with the website's host on the allowed list.
@@ -85,7 +85,8 @@ The release workflow makes a draft. Publishing it, and only then telling install
 1. Publish the draft. Done when: the installer is downloadable.
 2. Merge the version file. Done when: installed copies see the new version.
 
-- [ ] Follow `docs/release.md`: review the draft release, download the installer, check its SHA-256 against the attached file, install it on a second PC, then publish. Done when: `gh release view v0.1.0 --json isDraft --jq .isDraft` prints `false`. Cheaper substitute: publishing an installer nobody installed.
+- [ ] Follow `docs/release.md`: review the draft release, download the installer, check its SHA-256 against the attached file, install it on a second PC that has no developer tools and confirm the app starts and scans a folder there, then publish. Done when: `gh release view v0.1.0 --json isDraft --jq .isDraft` prints `false`. Cheaper substitute: publishing an installer nobody installed.
+- [ ] After publishing, run `python scripts/gen-version-json.py --publish 0.1.0` and push. Done when: `version.json` on `main` names `0.1.0`. Cheaper substitute: announcing the version before its installer can be downloaded.
 - [ ] Commit: `release: 0.1.0 published`
 
 **Test checkpoint:** `gh release view v0.1.0 --json isDraft,assets --jq '.isDraft, (.assets | length)'` prints `false` and `2`, and fails before the release exists.

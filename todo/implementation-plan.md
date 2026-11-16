@@ -8,24 +8,24 @@ Format and rules: `todo/README.md`. Run sections with the `process-plan`, `proce
 
 ### Phase 0: Repository and tooling
 
-Sections: 10 | Checklist items: 53
+Sections: 10 | Checklist items: 57
 
 | Status | Reference   | Deliverable                                                   | Needs        | Items |
 | ------ | ----------- | ------------------------------------------------------------- | ------------ | ----- |
-| [ ]    | D00 T01 §1  | Solution, shared build settings and version file              | windows-host | 6     |
+| [ ]    | D00 T01 §1  | Solution, shared build settings and version file              | windows-host | 7     |
 | [ ]    | D00 T01 §2  | vcpkg manifest with a pinned baseline                         | windows-host | 5     |
 | [ ]    | D00 T01 §3  | Engine library and Catch2 test program                        | windows-host | 4     |
 | [ ]    | D00 T01 §4  | Build and check scripts                                       | windows-host | 6     |
 | [ ]    | D00 T01 §5  | Compile database for clangd                                   | windows-host | 4     |
 | [ ]    | D00 T01 §6  | Continuous integration workflow                               | windows-host | 4     |
-| [ ]    | D00 T01 §7  | Photo fixture generator and manifest                          | windows-host | 6     |
-| [ ]    | D00 T01 §8  | HEIC and RAW sample files                                     | windows-host | 5     |
+| [ ]    | D00 T01 §7  | Photo fixture generator and manifest                          | windows-host | 8     |
+| [ ]    | D00 T01 §8  | HEIC and RAW sample files                                     | windows-host | 6     |
 | [ ]    | D00 T01 §9  | Brand build script: icon, wordmark, banners, installer images | windows-host | 8     |
 | [ ]    | D00 T01 §10 | Contributor documents and tool pins                           | windows-host | 5     |
 
 ### Phase 1: Engine
 
-Sections: 20 | Checklist items: 113
+Sections: 21 | Checklist items: 128
 
 | Status | Reference   | Deliverable                                  | Needs        | Items |
 | ------ | ----------- | -------------------------------------------- | ------------ | ----- |
@@ -33,44 +33,45 @@ Sections: 20 | Checklist items: 113
 | [ ]    | D01 T01 §2  | Folder walk and photo format table           | windows-host | 6     |
 | [ ]    | D01 T01 §3  | WIC decoder with orientation and metadata    | windows-host | 6     |
 | [ ]    | D01 T01 §4  | libheif decoder                              | windows-host | 5     |
-| [ ]    | D01 T01 §5  | LibRaw decoder                               | windows-host | 5     |
+| [ ]    | D01 T01 §5  | LibRaw decoder                               | windows-host | 6     |
 | [ ]    | D01 T01 §6  | BLAKE3 exact hash                            | windows-host | 4     |
 | [ ]    | D01 T01 §7  | dHash and pHash                              | windows-host | 7     |
 | [ ]    | D01 T01 §8  | Index database and migrations                | windows-host | 7     |
-| [ ]    | D01 T01 §9  | Scan pipeline with progress and cancel       | windows-host | 9     |
-| [ ]    | D01 T01 §10 | Console program: scan                        | windows-host | 6     |
+| [ ]    | D01 T01 §11 | WebP and AVIF decoding                       | windows-host | 6     |
+| [ ]    | D01 T01 §9  | Scan pipeline with progress and cancel       | windows-host | 10    |
+| [ ]    | D01 T01 §10 | Console program: scan                        | windows-host | 7     |
 | [ ]    | D01 T02 §1  | BK-tree over 64-bit hashes                   | windows-host | 4     |
 | [ ]    | D01 T02 §2  | Pair matching by closeness                   | windows-host | 5     |
 | [ ]    | D01 T02 §3  | Groups, kinds and likeness                   | windows-host | 5     |
 | [ ]    | D01 T02 §4  | Keeper suggestion and marks                  | windows-host | 5     |
-| [ ]    | D01 T02 §5  | Group storage and decisions in the index     | windows-host | 6     |
+| [ ]    | D01 T02 §5  | Group storage and decisions in the index     | windows-host | 7     |
 | [ ]    | D01 T02 §6  | Fixture accuracy test                        | windows-host | 6     |
-| [ ]    | D01 T02 §7  | Recycle through the Windows shell            | windows-host | 7     |
-| [ ]    | D01 T02 §8  | Clean-up records                             | windows-host | 6     |
-| [ ]    | D01 T02 §9  | Restore from the Recycle Bin                 | windows-host | 5     |
-| [ ]    | D01 T02 §10 | Console program: groups, recycle and restore | windows-host | 5     |
+| [ ]    | D01 T02 §7  | Recycle through the Windows shell            | windows-host | 9     |
+| [ ]    | D01 T02 §8  | Clean-up records                             | windows-host | 7     |
+| [ ]    | D01 T02 §9  | Restore from the Recycle Bin                 | windows-host | 6     |
+| [ ]    | D01 T02 §10 | Console program: groups, recycle and restore | windows-host | 6     |
 
 ### Phase 2: Application shell
 
-Sections: 11 | Checklist items: 62
+Sections: 11 | Checklist items: 65
 
 | Status | Reference   | Deliverable                                   | Needs                         | Items |
 | ------ | ----------- | --------------------------------------------- | ----------------------------- | ----- |
 | [ ]    | D02 T01 §1  | appcore library and its test program          | windows-host                  | 4     |
 | [ ]    | D02 T01 §2  | Settings store                                | windows-host                  | 6     |
 | [ ]    | D02 T01 §3  | Text, number and date formatting              | windows-host                  | 6     |
-| [ ]    | D02 T01 §4  | WinUI 3 app project that opens a window       | windows-host, display-session | 6     |
+| [ ]    | D02 T01 §4  | WinUI 3 app project that opens a window       | windows-host, display-session | 7     |
 | [ ]    | D02 T01 §5  | Theme resources generated from the tokens     | windows-host                  | 6     |
+| [ ]    | D02 T01 §9  | Command-line switches and data folder         | windows-host                  | 5     |
+| [ ]    | D02 T01 §10 | UI Automation test program and capture script | windows-host, display-session | 7     |
 | [ ]    | D02 T01 §6  | Title bar, tabs and page frame                | windows-host, display-session | 7     |
 | [ ]    | D02 T01 §7  | Window size, position and single instance     | windows-host, display-session | 5     |
-| [ ]    | D02 T01 §8  | Notice bar and dialog frame                   | windows-host, display-session | 6     |
-| [ ]    | D02 T01 §9  | Command-line switches and data folder         | windows-host                  | 5     |
-| [ ]    | D02 T01 §10 | UI Automation test program and capture script | windows-host, display-session | 6     |
+| [ ]    | D02 T01 §8  | Notice bar and dialog frame                   | windows-host, display-session | 7     |
 | [ ]    | D02 T01 §11 | Contrast theme and text scaling in the shell  | windows-host, display-session | 5     |
 
 ### Phase 3: Screens
 
-Sections: 27 | Checklist items: 172
+Sections: 27 | Checklist items: 174
 
 | Status | Reference   | Deliverable                                   | Needs                         | Items |
 | ------ | ----------- | --------------------------------------------- | ----------------------------- | ----- |
@@ -95,7 +96,7 @@ Sections: 27 | Checklist items: 172
 | [ ]    | D03 T03 §3  | Restore from History                          | windows-host, display-session | 6     |
 | [ ]    | D03 T03 §4  | Settings view model                           | windows-host                  | 5     |
 | [ ]    | D03 T03 §5  | Settings page                                 | windows-host, display-session | 7     |
-| [ ]    | D03 T03 §6  | Clear index and log folder                    | windows-host, display-session | 7     |
+| [ ]    | D03 T03 §6  | Clear index and log folder                    | windows-host, display-session | 9     |
 | [ ]    | D03 T03 §7  | About block and installed documents           | windows-host, display-session | 5     |
 | [ ]    | D03 T03 §8  | Update check                                  | windows-host                  | 6     |
 | [ ]    | D03 T03 §9  | Update notice and Check now                   | windows-host, display-session | 8     |
@@ -104,42 +105,42 @@ Sections: 27 | Checklist items: 172
 
 ### Phase 4: Similar shots
 
-Sections: 6 | Checklist items: 38
+Sections: 6 | Checklist items: 39
 
 | Status | Reference  | Deliverable                              | Needs                         | Items |
 | ------ | ---------- | ---------------------------------------- | ----------------------------- | ----- |
 | [ ]    | D04 T01 §1 | ONNX Runtime package and session wrapper | windows-host                  | 5     |
 | [ ]    | D04 T01 §2 | Model pin and verified download          | windows-host                  | 8     |
-| [ ]    | D04 T01 §3 | Image preparation and embeddings         | windows-host                  | 5     |
+| [ ]    | D04 T01 §3 | Image preparation and embeddings         | windows-host                  | 6     |
 | [ ]    | D04 T01 §4 | Similar groups                           | windows-host                  | 6     |
 | [ ]    | D04 T01 §5 | Model dialog and the two switches        | windows-host, display-session | 7     |
 | [ ]    | D04 T01 §6 | Similar shots in scan and review         | windows-host, display-session | 7     |
 
 ### Phase 5: Release
 
-Sections: 7 | Checklist items: 39
+Sections: 7 | Checklist items: 42
 
 | Status | Reference  | Deliverable                                    | Needs                         | Items |
 | ------ | ---------- | ---------------------------------------------- | ----------------------------- | ----- |
-| [ ]    | D05 T01 §1 | Release build and self-contained output folder | windows-host                  | 6     |
+| [ ]    | D05 T01 §1 | Release build and self-contained output folder | windows-host                  | 7     |
 | [ ]    | D05 T01 §2 | Third-party notices                            | windows-host                  | 4     |
 | [ ]    | D05 T01 §3 | Inno Setup script and package command          | windows-host                  | 7     |
-| [ ]    | D05 T01 §4 | Installer smoke test                           | windows-host, display-session | 6     |
-| [ ]    | D05 T01 §5 | Version file and release workflow              | windows-host                  | 6     |
+| [ ]    | D05 T01 §4 | Installer smoke test                           | windows-host, display-session | 7     |
+| [ ]    | D05 T01 §5 | Version file and release workflow              | windows-host                  | 7     |
 | [ ]    | D05 T01 §6 | README with screenshots                        | windows-host, display-session | 5     |
 | [ ]    | D05 T01 §7 | SPEC coverage sweep                            | windows-host, display-session | 5     |
 
 ### Phase 99: Manual, operator only
 
-Sections: 4 | Checklist items: 10
+Sections: 4 | Checklist items: 11
 
 | Status | Reference  | Deliverable                    | Needs          | Items |
 | ------ | ---------- | ------------------------------ | -------------- | ----- |
 | [ ]    | D99 T01 §1 | Website address                | owner-decision | 3     |
 | [ ]    | D99 T01 §2 | Social preview image on GitHub | operator       | 2     |
-| [ ]    | D99 T01 §3 | First release published        | operator       | 2     |
+| [ ]    | D99 T01 §3 | First release published        | operator       | 3     |
 | [ ]    | D99 T01 §4 | Code signing                   | owner-decision | 3     |
 
-Progress: 0/85 verified sections, 1 ready to run now.
+Progress: 0/86 verified sections, 1 ready to run now.
 
-Checklist: 0/487 items completed (includes Commit items).
+Checklist: 0/516 items completed (includes Commit items).

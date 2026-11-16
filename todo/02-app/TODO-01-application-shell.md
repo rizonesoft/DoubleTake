@@ -37,12 +37,14 @@ depends_on: ["repo-and-build", "match-and-clean"]
 | 3 | §3 | Text, number and date formatting | §1 | [ ] |
 | 4 | §4 | WinUI 3 app project that opens a window | §1, D00 T01 §9 | [ ] |
 | 5 | §5 | Theme resources generated from the tokens | §4 | [ ] |
-| 6 | §6 | Title bar, tabs and page frame | §5 | [ ] |
+| 6 | §6 | Title bar, tabs and page frame | §5, §10 | [ ] |
 | 7 | §7 | Window size, position and single instance | §6, §2 | [ ] |
 | 8 | §8 | Notice bar and dialog frame | §6 | [ ] |
-| 9 | §9 | Command-line switches and data folder | §7 | [ ] |
+| 9 | §9 | Command-line switches and data folder | §4, §2 | [ ] |
 | 10 | §10 | UI Automation test program and capture script | §9 | [ ] |
-| 11 | §11 | Contrast theme and text scaling in the shell | §8, §10 | [ ] |
+| 11 | §11 | Contrast theme and text scaling in the shell | §7, §8 | [ ] |
+
+Sections run in dependency order, not number order: §9 and §10 come straight after §5, so the UI test program exists before the sections whose checkpoints use it (§6, §7, §8, §11).
 
 ## 1. appcore library and its test program
 
@@ -78,7 +80,7 @@ One file, written safely, read back the same.
 2. Survive a bad file. Done when: defaults load and the bad file is kept aside.
 
 - [ ] Add `dt::app::Settings` in `src/appcore/settings.cpp` with every value and default in `design/SPEC.md` section 8, plus the folder list, the closeness, the window placement and the dismissed update version, stored as JSON at `<data folder>\settings.json` (foundation plan section 6). Done when: `tests/appcore/settings_tests.cpp` writes every value, reloads and compares. Cheaper substitute: the registry, which a test cannot isolate.
-- [ ] Write atomically: to a temporary file in the same folder, flushed, then `ReplaceFile`. Done when: a test that fails the write midway (through a fault hook) leaves the previous file intact. Cheaper substitute: truncating and rewriting in place.
+- [ ] Write atomically: to a temporary file in the same folder, flushed, then `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH`, which both creates the file on first run and replaces it afterwards. Done when: a test saves with no file present, saves again over it, and a third save failed midway (through a fault hook) leaves the second file intact. Cheaper substitute: `ReplaceFile`, which fails when there is no file yet, or truncating and rewriting in place.
 - [ ] On an unreadable or wrongly typed file, rename it to `settings.bad-<timestamp>.json`, load defaults and report it once. Done when: a test with broken JSON finds the renamed file and default values. Cheaper substitute: overwriting the user's file silently.
 - [ ] Ignore unknown keys and keep them on the next save. Done when: a test with an extra key finds it still there after a save. Cheaper substitute: dropping keys a newer version wrote.
 - [ ] Notify through `Observable` when a value changes, and save within 500 ms of the last change. Done when: a test changing three values sees one write. Cheaper substitute: a write on every keystroke.
@@ -126,13 +128,14 @@ The first window.
 2. Open the window. Done when: it shows at 1280 x 800 with the icon.
 
 - [ ] Add `src/app/DoubleTake.vcxproj` (C++/WinRT, Windows App SDK and C++/WinRT from NuGet with versions pinned in `packages.config`, `WindowsPackageType` `None`, `WindowsAppSDKSelfContained` `true`) with `App.xaml` and `MainWindow.xaml`, linking `appcore` (foundation plan D3). Done when: `scripts/build.ps1` builds `DoubleTake.exe` and it starts on a machine with no Windows App SDK runtime installed (checked by running it with the runtime's package absent from `Get-AppxPackage`, or by listing the SDK's files beside the executable). Cheaper substitute: a packaged app, which needs MSIX and a certificate.
-- [ ] Set the window to 1280 x 800 effective pixels, centred on the monitor under the pointer, with background `ground` and the dark theme set before first paint. Done when: a capture of the first frame has no white pixel. Cheaper substitute: setting the theme after `Activate`, which flashes.
+- [ ] Add `scripts/smoke-launch.ps1 [-AppArgs <args>]`: start the built app with no console window, wait up to 15 seconds for its top-level window, read the colour of the client area's centre pixel with `PrintWindow`, close the window, and end the whole process tree on timeout or failure. Done when: it exits 0 printing the window's size and that pixel, and exits 1 when the app shows no window. Cheaper substitute: checking only that the process started, which passes for an app that never shows.
+- [ ] Set the window to 1280 x 800 effective pixels, centred on the monitor under the pointer, with background `ground` and the dark theme set before first paint. Done when: `scripts/smoke-launch.ps1` reports 1280 x 800 at 100% scale and the centre pixel `#141312`. Cheaper substitute: setting the theme after `Activate`, which flashes.
 - [ ] Set the window and taskbar icon from `resources/brand/doubletake.ico` and embed it as the executable's icon with a version resource reading `$(DoubleTakeVersion)`. Done when: Explorer shows the icon and the file's properties show the version. Cheaper substitute: the default WinUI icon.
 - [ ] Add an application manifest declaring per-monitor DPI awareness (v2), long path awareness and Windows 10 and 11 compatibility. Done when: `mt.exe -inputresource` shows the three entries. Cheaper substitute: a blurry window on a second monitor.
 - [ ] Route unhandled errors to the engine log and a plain message box naming the log folder, then exit. Done when: a test build's forced error writes the log line and shows the box. Cheaper substitute: a silent crash.
 - [ ] Commit: `app: WinUI 3 project and first window`
 
-**Test checkpoint:** `pwsh scripts/build.ps1` builds `build\bin\x64\Debug\DoubleTake.exe`, and `pwsh scripts/check.ps1 -Only ui -Filter "[launch]"` (added in §10) fails when the window does not appear within 15 seconds.
+**Test checkpoint:** `pwsh scripts/build.ps1` builds `build\bin\x64\Debug\DoubleTake.exe` and `pwsh scripts/smoke-launch.ps1` exits 0 with the centre pixel `#141312`, and exits 1 when `MainWindow` is never activated.
 
 ## 5. Theme resources generated from the tokens
 
@@ -230,6 +233,7 @@ How the app tells the user something, built once.
 - [ ] Mark the bar as a live region so its text is announced. Done when: UI Automation reports `LiveSetting` polite on the bar. Cheaper substitute: a notice only sighted users notice.
 - [ ] Restyle `ContentDialog` as `DtDialog` in `src/app/Controls/DtDialog.xaml`: 480 wide, `panel` body with 24 padding, `stroke` border, radius 10, the `dialogTitle` style, a `ground` footer with two equal 36 high buttons, the action on the left in accent, over the `scrim` at 70%. Done when: a capture of a test dialog matches the mockup's dialog within 2 px on each edge. Cheaper substitute: the stock dialog, whose buttons are the other way round.
 - [ ] Close the dialog on Escape as cancel, and return focus to the control that opened it. Done when: a UI test confirms both. Cheaper substitute: focus lost to the window.
+- [ ] Show a `Problem` notice with the action `Start a new index` when the index cannot be opened at start (`D02 T01 §9` reports the failure), and keep the Scan page usable (`design/SPEC.md` section 10, last row); the action itself is built by `D03 T03 §6` and until then opens the data folder. Done when: a UI test with a corrupt `index.db` finds the notice and an enabled Scan tab. Cheaper substitute: refusing to start.
 - [ ] Commit: `app: notice bar and dialog frame`
 
 **Test checkpoint:** `pwsh scripts/check.ps1 -Only ui -Filter "[notice]"` and `-Filter "[dialog]"` pass, and fail when the dialog's action button is on the right.
@@ -248,9 +252,9 @@ What tests and support need to run the app in isolation.
 2. Use the data folder everywhere. Done when: nothing is written outside it.
 
 - [ ] Add `dt::app::StartupOptions` parsed in `src/appcore/startup.cpp`: `--data-dir <folder>`, `--no-update-check`, `--scan <folder>` (repeatable) (foundation plan section 6). Done when: `tests/appcore/startup_tests.cpp` covers each, quoted paths, and an unknown switch reported as an error. Cheaper substitute: environment variables, which leak between tests.
-- [ ] Resolve the data folder to `%LOCALAPPDATA%\DoubleTake` by default and create it; open the index, settings and log only under it. Done when: a UI test run with `--data-dir` leaves the default folder's file list unchanged. Cheaper substitute: a path built in three places.
+- [ ] Resolve the data folder to `%LOCALAPPDATA%\DoubleTake` by default and create it; open the index, settings and log only under it. Done when: `scripts/smoke-launch.ps1 -AppArgs "--data-dir build\smoke-data"` leaves a `settings.json` there and the default folder's file list unchanged. Cheaper substitute: a path built in three places.
 - [ ] On an unknown switch show a plain message naming it and exit 2 without opening the window. Done when: a test starts the app with `--bogus` and reads exit code 2. Cheaper substitute: ignoring it.
-- [ ] Show a `Problem` notice with a `Clear index` action when the index cannot be opened, and keep the Scan page usable (`design/SPEC.md` section 10, last row). Done when: a UI test with a corrupt `index.db` finds the notice and an enabled drop zone. Cheaper substitute: refusing to start.
+- [ ] Open the index at start and hand a failure to `ShellViewModel` as a startup problem value, without ending the app. Done when: `tests/appcore/startup_tests.cpp` opens a corrupt file through the startup path and reads the problem value. Cheaper substitute: an unhandled error at start.
 - [ ] Commit: `app: command-line switches and data folder`
 
 **Test checkpoint:** `pwsh scripts/check.ps1 -Only appcore -Filter "[startup]"` passes, and fails when `--data-dir` is ignored.
@@ -268,9 +272,10 @@ The way every screen after this is proven.
 1. Add `tests/ui/doubletake-uitests.vcxproj`. Done when: it starts the app and finds a tab.
 2. Add `scripts/capture.ps1`. Done when: a PNG of the window is saved.
 
-- [ ] Add `tests/ui/doubletake-uitests.vcxproj` (Catch2, the UI Automation COM client) with `tests/ui/app_fixture.h`: start `DoubleTake.exe` with a fresh `--data-dir` under `build/ui-test/` and `--no-update-check`, wait up to 15 seconds for the window, and expose find-by-name, find-by-automation-id, invoke, set-value and send-keys helpers (foundation plan section 8). Done when: `[launch]` finds the three tabs. Cheaper substitute: tests that poke view models and never see the real window.
+- [ ] Add `tests/ui/doubletake-uitests.vcxproj` (Catch2, the UI Automation COM client) with `tests/ui/app_fixture.h`: start `DoubleTake.exe` with a fresh `--data-dir` under `build/ui-test/` and `--no-update-check`, wait up to 15 seconds for the window, and expose find-by-name, find-by-automation-id, invoke, set-value and send-keys helpers (foundation plan section 8). Done when: `[launch]` finds the app's window by its automation id and reads its title. Cheaper substitute: tests that poke view models and never see the real window.
+- [ ] Capture the first painted frame in `[launch]` and fail on any pure white pixel. Done when: the test passes, and fails when the dark theme is applied after the window is shown. Cheaper substitute: checking the colour a second later, which misses a white flash.
 - [ ] End the app on teardown: close the window, wait 5 seconds, then end the whole process tree with a job object. Done when: after a test that leaves a dialog open, no `DoubleTake.exe` is left. Cheaper substitute: `TerminateProcess` on the one handle, which can leave children.
-- [ ] Add a test hook, active only with `--test-hooks`, exposing named commands to the fixture over a local named pipe (raise a notice, open a dialog, set a fake clock). Done when: `[notice]` raises a notice through it, and the pipe does not exist without the switch. Cheaper substitute: test-only buttons in the shipped interface.
+- [ ] Add a test hook, active only with `--test-hooks`, exposing named commands to the fixture over a local named pipe (raise a notice, open a dialog, set a fake clock). Done when: a `[hook]` test sends the `ping` command and reads its reply, and the pipe does not exist without the switch. Cheaper substitute: test-only buttons in the shipped interface.
 - [ ] Add `scripts/capture.ps1 -Name <state>` saving the app window's client area to `build/renders/<state>.png` with `PrintWindow`, and a fixture helper that calls it. Done when: `[launch]` leaves `build/renders/shell-first-run.png`, non-empty and 1280 x 800 at 100% scale. Cheaper substitute: a full-screen screenshot that includes the desktop.
 - [ ] Add the UI test program to `scripts/check.ps1` under the name `ui`, skipped with a clear line when there is no interactive desktop. Done when: `-Only ui` runs it. Cheaper substitute: a silent skip that reads as a pass.
 - [ ] Commit: `tests: UI Automation test program and capture script`

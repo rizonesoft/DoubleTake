@@ -40,8 +40,9 @@ depends_on: ["repo-and-build"]
 | 6 | §6 | BLAKE3 exact hash | §1 | [ ] |
 | 7 | §7 | dHash and pHash | §3 | [ ] |
 | 8 | §8 | Index database and migrations | §1 | [ ] |
-| 9 | §9 | Scan pipeline with progress and cancel | §2, §4, §5, §6, §7, §8 | [ ] |
+| 9 | §9 | Scan pipeline with progress and cancel | §2, §4, §5, §6, §7, §8, §11 | [ ] |
 | 10 | §10 | Console program: scan | §9 | [ ] |
+| 11 | §11 | WebP and AVIF decoding | §4 | [ ] |
 
 ## 1. Cancel token, result type and log
 
@@ -76,7 +77,7 @@ Finding the photos, and skipping what must not be followed.
 1. Add `src/engine/formats.cpp`. Done when: an extension maps to a decoder family.
 2. Add `src/engine/walk.cpp`. Done when: it lists photos and records unreadable folders.
 
-- [ ] Add the format table in `src/engine/formats.cpp`: each extension in foundation plan section 5.2, matched without case, with its decoder family (`Wic`, `Heif`, `Raw`). Done when: `tests/engine/formats_tests.cpp` covers every extension and rejects `.txt` and a name with no extension. Cheaper substitute: sniffing every file's first bytes, which reads the whole disk.
+- [ ] Add the format table in `src/engine/formats.cpp`: each extension in foundation plan section 5.2, matched without case, with its decoder family (`Wic`, `WebP`, `Heif`, `Raw`). Done when: `tests/engine/formats_tests.cpp` covers every extension and rejects `.txt` and a name with no extension. Cheaper substitute: sniffing every file's first bytes, which reads the whole disk.
 - [ ] Add `dt::walk(folder, options, cancel, sink)` in `src/engine/walk.cpp` yielding path, size and modified time for each photo, skipping reparse points, and skipping hidden and system folders unless `options.hidden` (foundation plan section 5.1). Done when: a test tree with a junction, a hidden folder and nested folders yields exactly the expected files, both ways for `hidden`. Cheaper substitute: following junctions, which loops on a folder that links to its parent.
 - [ ] Record a folder that cannot be opened as an `Error` to the sink and keep walking. Done when: a test with a folder whose access is denied sees the error and still gets the files beside it. Cheaper substitute: aborting the whole walk on the first denied folder.
 - [ ] Leave RAW extensions out when `options.raw` is false. Done when: a test with a `.dng` beside a `.jpg` yields one file. Cheaper substitute: decoding them and discarding the result.
@@ -101,8 +102,8 @@ The common formats, through the decoder Windows already has.
 - [ ] Add `dt::Image` (width, height, 8-bit BGRA pixels) and `dt::PhotoInfo` (pixel width and height of the full image, capture date, camera model) with `dt::decode(path, longestSide, cancel)` returning both, in `include/doubletake/decode.h` (foundation plan section 5.2). Done when: the header compiles in the test program. Cheaper substitute: returning a WIC interface, which ties callers to COM.
 - [ ] Implement the `Wic` family in `src/engine/decode_wic.cpp` with `IWICImagingFactory`, scaling with the Fant interpolation mode to the requested longest side and converting to 32bpp BGRA. Done when: a test decodes a fixture JPEG, PNG, BMP, GIF and TIFF at longest side 256 and gets the right dimensions. Cheaper substitute: decoding at full size and shrinking by skipping pixels.
 - [ ] Apply the EXIF orientation (values 1 to 8) so the returned pixels are upright, and report the upright full-image size. Done when: the fixture stored rotated with an orientation tag decodes to pixels within a mean difference of 2 levels of its original. Cheaper substitute: ignoring orientation, which makes a rotated copy look different.
-- [ ] Read `DateTimeOriginal` and the camera model through the WIC metadata query reader, leaving them empty when absent. Done when: a test reads the date written by the fixture generator and gets empty for a PNG. Cheaper substitute: using the file's modified time as the capture date.
-- [ ] Return an `Error` with a distinct code for a missing file, an unsupported or damaged file, and a missing WIC codec (WebP on an older Windows). Done when: tests cover a truncated JPEG and a text file renamed `.jpg`. Cheaper substitute: returning an empty image as success.
+- [ ] Read `DateTimeOriginal` and the camera model through the WIC metadata query reader, leaving them empty when absent. Done when: a test reads the date and camera the manifest records for a fixture JPEG and gets empty for a PNG. Cheaper substitute: using the file's modified time as the capture date.
+- [ ] Return an `Error` with a distinct code for a missing file and for an unsupported or damaged file. Done when: tests cover a missing path, a truncated JPEG and a text file renamed `.jpg`. Cheaper substitute: returning an empty image as success.
 - [ ] Commit: `engine: WIC decoder with orientation and metadata`
 
 **Test checkpoint:** `pwsh scripts/check.ps1 -Only engine -Filter "[decode-wic]"` passes, and fails when the orientation step is removed.
@@ -121,8 +122,8 @@ Phone photos.
 2. Match the WIC contract. Done when: orientation and metadata behave the same.
 
 - [ ] Implement the `Heif` family in `src/engine/decode_heif.cpp` with libheif: decode the primary image to interleaved RGB, convert to BGRA and scale to the requested longest side by area averaging. Done when: `tests/fixtures/samples/scene01.heic` decodes to within a mean difference of 6 levels of its scene's original. Cheaper substitute: asking Windows for the HEIC codec, which many machines lack.
-- [ ] Let libheif apply the image's own transformations (`irot`, `imir`) and do not apply the EXIF orientation again. Done when: a test with a rotated HEIC, made in the fixture step, decodes upright once. Cheaper substitute: applying both, which turns the photo twice.
-- [ ] Read the capture date and camera model from the EXIF block libheif exposes. Done when: a test reads them from the sample. Cheaper substitute: leaving HEIC photos without dates, which breaks the oldest and newest keeper rules for phones.
+- [ ] Let libheif apply the image's own transformations (`irot`, `imir`) and do not apply the EXIF orientation again. Done when: `tests/fixtures/samples/scene02-rotated.heic` (`D00 T01 §8`) decodes to the upright pixel size the manifest records. Cheaper substitute: applying both, which turns the photo twice.
+- [ ] Read the capture date and camera model from the EXIF block libheif exposes. Done when: a test reads the values the manifest records for both HEIC samples. Cheaper substitute: leaving HEIC photos without dates, which breaks the oldest and newest keeper rules for phones.
 - [ ] Record in `NOTICE.md` the licences of libheif and of the decoder plugins the vcpkg build actually links (foundation plan D8). Done when: the list matches `vcpkg list`. Cheaper substitute: none needed.
 - [ ] Commit: `engine: libheif decoder`
 
@@ -143,6 +144,7 @@ Camera RAW files, read through their embedded preview when it is good enough.
 
 - [ ] Implement the `Raw` family in `src/engine/decode_raw.cpp` with LibRaw: use the embedded JPEG preview when it is at least 1024 wide, decoding it through the `Wic` path from memory (foundation plan section 5.2). Done when: the sample with a preview decodes without LibRaw's full processing being called (checked by a counter in the test build). Cheaper substitute: a full demosaic of every RAW file, which is many times slower.
 - [ ] Otherwise decode with `half_size`, camera white balance and sRGB output. Done when: the sample with no preview decodes to within a mean difference of 10 levels of its scene. Cheaper substitute: failing on RAW files with no preview.
+- [ ] Add a full-quality mode to `dt::decode` (`DecodeQuality::Full`), used when the caller asks for the photo's own pixel size: for RAW it runs LibRaw's full-size processing, never the preview or `half_size`. Done when: a test decoding a DNG sample in this mode gets the sensor's full pixel size, and the default mode still takes the preview path. Cheaper substitute: an enlarged preview shown as "actual size", which hides the detail the user is comparing (`design/SPEC.md` section 6, `Actual size`).
 - [ ] Apply the orientation LibRaw reports (`sizes.flip`) and read the capture date and camera model. Done when: tests read them from a sample. Cheaper substitute: none needed.
 - [ ] Bound memory: refuse, with an `Error`, a file whose declared raw size is over 200 megapixels. Done when: a test with a crafted header is refused without a large allocation. Cheaper substitute: trusting the header's dimensions.
 - [ ] Commit: `engine: LibRaw decoder`
@@ -230,7 +232,8 @@ The parts joined: walk, skip what is known, decode, hash, store.
 
 - [ ] Add `dt::ScanOptions` (folders, hidden, raw, minimum pixel size) and `dt::scan(options, index, cancel, progress)` in `src/engine/scan.cpp`: count files first, then process them on a pool of `hardware_concurrency - 1` threads, at least one (foundation plan section 5.1). Done when: scanning `build/fixtures/` leaves one `files` row per fixture with both perceptual hashes. Cheaper substitute: a single thread.
 - [ ] Skip a file when `needs_read` is false, and count it as skipped. Done when: a second scan of the fixtures decodes no file (checked by a decode counter) and reports every file skipped. Cheaper substitute: rehashing everything on each scan.
-- [ ] Compute BLAKE3 only for files whose size is shared by another file in the scan or the index. Done when: a test with three sizes, one shared, hashes exactly the two files that share it. Cheaper substitute: hashing every file.
+- [ ] Compute BLAKE3 only for files whose size is shared by another file in the scan or the index, and decide it apart from `needs_read`: after the walk, every file seen whose size is shared and whose row has no BLAKE3 is hashed, whether or not it was decoded this time. Done when: a test with three sizes, one shared, hashes exactly the two files that share it, and a second test scans one file, adds a byte-identical copy, rescans, and finds BLAKE3 on both rows. Cheaper substitute: hashing only newly read files, which leaves the older twin without a hash so the exact pair is missed.
+- [ ] Apply the current options to every file seen, cached or not: a cached row is in or out of the scan's set by its stored pixel size against the minimum, and by the RAW and hidden options through the walk. Done when: a test scans at minimum 64, rescans at 256 and at 0 without touching the files, and the set changes each time with no file decoded again. Cheaper substitute: filtering only at decode time, so a changed setting does nothing until a photo changes.
 - [ ] Store a file that fails to decode with its error text, and leave it out of matching. Done when: a damaged fixture has a row with an error and the scan result counts one unreadable file. Cheaper substitute: dropping it silently, so it is retried and fails on every scan.
 - [ ] Leave out files whose shorter side is below the minimum pixel size, after decoding their size. Done when: a 32 x 32 fixture is counted as too small at the default 64. Cheaper substitute: filtering by file size in bytes.
 - [ ] Publish `dt::ScanProgress` (phase, files read, files total, current folder, unreadable, skipped) at most ten times a second from one place. Done when: a test over 2,000 files receives at most `elapsed x 10 + 2` calls and the last call has read equal to total. Cheaper substitute: a callback per file, which floods the interface.
@@ -253,7 +256,8 @@ The engine, run for real without a window.
 1. Add `src/cli/doubletake-cli.vcxproj`. Done when: `doubletake-cli scan` prints results.
 2. Test it as a program. Done when: its output is checked.
 
-- [ ] Add `src/cli/doubletake-cli.vcxproj` (console program, in the solution, never installed) with `scan <folder>... [--data-dir <dir>] [--hidden] [--no-raw] [--min-size <px>]`, printing a progress line to standard error and a final summary to standard output (foundation plan section 3). Done when: `doubletake-cli scan build\fixtures --data-dir build\cli-test` exits 0 and prints the photo count. Cheaper substitute: a test-only function that no one can run by hand.
+- [ ] Add `src/cli/doubletake-cli.vcxproj` (console program, in the solution, never installed) with `scan <folder>... --data-dir <dir> [--hidden] [--no-raw] [--min-size <px>]`, printing a progress line to standard error and a final summary to standard output (foundation plan section 3). Done when: `doubletake-cli scan build\fixtures --data-dir build\cli-test` exits 0 and prints the photo count. Cheaper substitute: a test-only function that no one can run by hand.
+- [ ] Make `--data-dir` required by every command of this program, with no default, and refuse a data folder that is the app's own (`%LOCALAPPDATA%\DoubleTake`) or lies outside `build/` and the system temporary folder unless `--allow-any-data-dir` is given. Done when: a test running `scan` with no `--data-dir` reads exit 2, and one naming the app's folder reads exit 2 with nothing written there. Cheaper substitute: defaulting to the owner's index, which a test run would then scan into, decide and recycle from.
 - [ ] Add `--json` writing one object per photo (path, size, width, height, the three hashes in hex, error). Done when: the output parses as JSON lines and holds every fixture. Cheaper substitute: a format only this program can read.
 - [ ] Exit 2 with a usage line for no folder or an unknown option, and 1 when a folder does not exist. Done when: tests cover both. Cheaper substitute: exit 0 on bad input.
 - [ ] Handle Ctrl+C by cancelling the token and exiting 130 after the engine returns. Done when: a manual run interrupted mid-scan leaves a usable index. Cheaper substitute: letting the process die inside a transaction.
@@ -262,7 +266,29 @@ The engine, run for real without a window.
 
 **Test checkpoint:** `pwsh scripts/check.ps1 -Only engine -Filter "[cli-scan]"` passes, and fails when `--json` omits the hashes.
 
+## 11. WebP and AVIF decoding
+
+The two formats that must not depend on a codec the user may not have installed.
+
+**Phase:** 1
+**Needs:** windows-host
+**Surface:** no
+
+**Build order:**
+
+1. Add `src/engine/decode_webp.cpp`. Done when: a WebP fixture decodes with no Windows codec involved.
+2. Prove AVIF through libheif. Done when: an AVIF fixture decodes.
+
+- [ ] Implement the `WebP` family in `src/engine/decode_webp.cpp` with libwebp: decode to BGRA, scale to the requested longest side by area averaging, and take the first frame of an animation (foundation plan section 5.2). Done when: each scene's WebP fixture decodes to within a mean difference of 6 levels of its original. Cheaper substitute: the Windows WebP codec, which is a Store extension some machines lack.
+- [ ] Read the EXIF orientation, capture date and camera model from the WebP container's EXIF chunk when present. Done when: a test with a WebP carrying orientation 6 decodes upright. Cheaper substitute: ignoring orientation for WebP.
+- [ ] Decode `.avif` through the `Heif` family and confirm the vcpkg build of libheif has an AV1 decoder by decoding each scene's AVIF fixture. Done when: the test passes, and fails with a clear "no AV1 decoder" error when the feature is removed from `vcpkg.json`. Cheaper substitute: listing AVIF as supported and failing on every file.
+- [ ] Bound both decoders: refuse, with an `Error`, an image whose declared size is over 200 megapixels before allocating. Done when: tests with crafted headers are refused. Cheaper substitute: trusting the header.
+- [ ] Record libwebp's licence and the AV1 decoder's in `NOTICE.md` (foundation plan D8). Done when: both are listed. Cheaper substitute: none needed.
+- [ ] Commit: `engine: WebP and AVIF decoding`
+
+**Test checkpoint:** `pwsh scripts/check.ps1 -Only engine -Filter "[decode-webp]"` and `-Filter "[decode-avif]"` pass, and the AVIF test fails when the AV1 decoder feature is removed.
+
 ## Verification
 
-- `doubletake-cli scan build\fixtures --json` lists every fixture, including the HEIC and DNG samples, with three hashes each, and a second run reports every file skipped.
+- `doubletake-cli scan build\fixtures --data-dir build\cli-verify --json` lists every fixture, including the WebP, AVIF, HEIC and DNG files, with three hashes each, and a second run reports every file skipped.
 - `python scripts/todo-graph.py validate` and `python scripts/todo-graph.py plan --check` pass.

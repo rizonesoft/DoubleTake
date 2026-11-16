@@ -54,17 +54,18 @@ The skeleton every later project joins: one solution, one place for compiler rul
 
 **Build order:**
 
-1. Add `DoubleTake.sln`, `Directory.Build.props` and `Directory.Build.targets`. Done when: an empty solution loads in MSBuild with no error.
-2. Add `version.props`. Done when: a project can read `$(DoubleTakeVersion)`.
+1. Add `DoubleTake.sln`, `Directory.Build.props`, `Directory.Build.targets` and a probe project. Done when: the probe builds with the shared settings.
+2. Add `version.props`. Done when: the probe prints `$(DoubleTakeVersion)`.
 
-- [ ] Add `DoubleTake.sln` with the `x64` platform and the `Debug` and `Release` configurations only (foundation plan D1, section 3). Done when: `msbuild DoubleTake.sln -t:Restore` from a Visual Studio developer shell exits 0. Cheaper substitute: a solution that also lists Win32 or ARM64, which no one builds or tests.
-- [ ] Add `Directory.Build.props` setting, for every project: `PlatformToolset` to the newest installed toolset (default `v145`, overridable by the `DoubleTakeToolset` property), `WindowsTargetPlatformVersion` `10.0.26100.0`, Unicode, and `OutDir` and `IntDir` under `build\bin\` and `build\obj\` (foundation plan section 4). Done when: `msbuild -pp` on a test project shows those values. Cheaper substitute: repeating the values in each `.vcxproj`.
-- [ ] Add `Directory.Build.targets` setting `ClCompile` defaults: `/std:c++20`, `/W4`, `/WX`, `/permissive-`, `/utf-8`, `/Zc:__cplusplus`, and no `/fp:fast` (foundation plan D2, section 5.3). Done when: a test file with an unused variable fails the build. Cheaper substitute: `/W3`, which lets the warnings this project forbids through.
-- [ ] Add `version.props` defining `DoubleTakeVersion` as `0.1.0`, imported by `Directory.Build.props` (foundation plan section 9). Done when: `msbuild -getProperty:DoubleTakeVersion` on any project prints `0.1.0`. Cheaper substitute: a version typed in a header and again in the installer.
+- [ ] Add `DoubleTake.sln` with the `x64` platform and the `Debug` and `Release` configurations only, holding one project, `tests/build-probe/build-probe.vcxproj`: a console program with no dependency that prints the version, `__cplusplus` and `_MSVC_LANG` (foundation plan D1, section 3). Done when: `msbuild DoubleTake.sln` from a Visual Studio developer shell builds `build-probe.exe`. Cheaper substitute: a solution with no project, where no shared setting can be observed.
+- [ ] Add `Directory.Build.props` setting, for every project: `PlatformToolset` to the newest installed toolset (default `v145`, overridable by the `DoubleTakeToolset` property), `WindowsTargetPlatformVersion` `10.0.26100.0`, Unicode, and `OutDir` and `IntDir` under `build\bin\` and `build\obj\` (foundation plan section 4). Done when: `msbuild tests/build-probe/build-probe.vcxproj -pp` shows those values. Cheaper substitute: repeating the values in each `.vcxproj`.
+- [ ] Add `Directory.Build.targets` setting `ClCompile` defaults: `/std:c++20`, `/W4`, `/WX`, `/permissive-`, `/utf-8`, `/Zc:__cplusplus`, and no `/fp:fast` (foundation plan D2, section 5.3). Done when: building the probe with `-p:ProbeWarning=true`, which compiles in an unused variable, fails. Cheaper substitute: `/W3`, which lets the warnings this project forbids through.
+- [ ] Set the C runtime for every project in `Directory.Build.targets` to the Hybrid CRT of the Windows App SDK's guidance: `/MT` (`/MTd` in Debug) with the universal CRT linked dynamically, read from Microsoft's Hybrid CRT document on the day and cited in a comment (foundation plan section 4). Done when: `dumpbin /dependents build-probe.exe` lists no `VCRUNTIME` or `MSVCP` DLL. Cheaper substitute: `/MD`, which needs the Visual C++ redistributable installed on the user's PC.
+- [ ] Add `version.props` defining `DoubleTakeVersion` as `0.1.0`, imported by `Directory.Build.props` (foundation plan section 9). Done when: `build-probe.exe` prints `0.1.0`. Cheaper substitute: a version typed in a header and again in the installer.
 - [ ] Add `build/`, `vcpkg_installed/`, `packages/`, `.vs/`, `*.user` and `__pycache__/` to `.gitignore`. Done when: `git status --short` is empty after a build. Cheaper substitute: none needed.
 - [ ] Commit: `build: solution, shared settings and version file`
 
-**Test checkpoint:** `msbuild DoubleTake.sln -t:Restore -p:Configuration=Debug -p:Platform=x64` exits 0, and exits non-zero when `Directory.Build.props` names a toolset that is not installed.
+**Test checkpoint:** `msbuild DoubleTake.sln -p:Configuration=Debug -p:Platform=x64` exits 0 and `build\bin\x64\Debug\build-probe.exe` prints `0.1.0` and `202002`, and the build exits non-zero with `-p:DoubleTakeToolset=v999`.
 
 ## 2. vcpkg manifest with a pinned baseline
 
@@ -79,13 +80,13 @@ Libraries come from vcpkg in manifest mode, pinned so every machine builds the s
 1. Add `vcpkg.json` and `vcpkg-configuration.json`. Done when: `vcpkg install` resolves every port.
 2. Turn on MSBuild integration. Done when: a project includes a vcpkg header with no include path of its own.
 
-- [ ] Add `vcpkg.json` listing `blake3`, `sqlite3`, `libheif`, `libraw` and `catch2`, each confirmed to exist in the registry with `vcpkg search` before it is listed (foundation plan D4). Done when: `vcpkg install --triplet x64-windows-static-md --dry-run` lists all five and their dependencies. Cheaper substitute: copying library sources into the repository.
+- [ ] Add `vcpkg.json` listing `blake3`, `sqlite3`, `libheif`, `libwebp`, `libraw` and `catch2`, each confirmed to exist in the registry with `vcpkg search` before it is listed, with `libheif`'s HEVC and AV1 decoder features named as its port file spells them (foundation plan D4, section 5.2). Done when: `vcpkg install --triplet x64-windows-static --dry-run` lists all six, an HEVC decoder and an AV1 decoder. Cheaper substitute: the port's default features, which may leave AVIF without a decoder.
 - [ ] Add `vcpkg-configuration.json` with the default registry pinned to one baseline commit. Done when: `vcpkg x-update-baseline --dry-run` reports the baseline as set. Cheaper substitute: no baseline, which lets library versions drift between machines.
-- [ ] Record in `NOTICE.md` each library's licence as vcpkg reports it, and stop with a finding in `todo/findings.md` if one is not compatible with GPL-3.0-or-later (foundation plan D8). Done when: `NOTICE.md` names all five with their licences. Cheaper substitute: assuming the licences from memory.
-- [ ] Set `VcpkgEnableManifest`, `VcpkgTriplet` (`x64-windows-static-md`) and `VcpkgInstalledDir` in `Directory.Build.props`, importing the integration targets from the Visual Studio vcpkg folder found by `vswhere`. Done when: the restore step installs the ports into `vcpkg_installed/`. Cheaper substitute: a user-wide `vcpkg integrate install`, which a fresh clone and CI do not have.
+- [ ] Record in `NOTICE.md` each library's licence as vcpkg reports it, and stop with a finding in `todo/findings.md` if one is not compatible with GPL-3.0-or-later (foundation plan D8). Done when: `NOTICE.md` names every port installed, direct and transitive, with its licence. Cheaper substitute: assuming the licences from memory.
+- [ ] Set `VcpkgEnableManifest`, `VcpkgTriplet` (`x64-windows-static`, static libraries on the static C runtime, the one that links with the Hybrid CRT of §1) and `VcpkgInstalledDir` in `Directory.Build.props`, importing the integration targets from the Visual Studio vcpkg folder found by `vswhere`. Done when: the restore step installs the ports into `vcpkg_installed/`. Cheaper substitute: a user-wide `vcpkg integrate install`, which a fresh clone and CI do not have.
 - [ ] Commit: `build: vcpkg manifest and pinned baseline`
 
-**Test checkpoint:** `vcpkg install --triplet x64-windows-static-md` in the repository root exits 0, and exits non-zero when `vcpkg.json` names a port that does not exist.
+**Test checkpoint:** `vcpkg install --triplet x64-windows-static` in the repository root exits 0, and exits non-zero when `vcpkg.json` names a port that does not exist.
 
 ## 3. Engine library and Catch2 test program
 
@@ -183,7 +184,9 @@ The photos every matching test runs on, drawn by a script so nothing private or 
 2. Run it from the check script. Done when: tests find `build/fixtures/`.
 
 - [ ] Add `tests/fixtures/make_fixtures.py` (Pillow) drawing at least 12 scenes at 2400 x 1800 from a fixed seed: skies, hills, shapes and noise textures that differ clearly between scenes (foundation plan section 8). Done when: two runs write byte-identical files. Cheaper substitute: unseeded random images, which make failures unrepeatable.
-- [ ] For each scene write the variants: original JPEG at quality 95, a 1200 x 900 resize, recompressions at quality 60 and 85, a PNG, a copy rotated in pixels and corrected through the EXIF orientation tag, a light edit (brightness +6%), a 10% crop, and a byte-identical copy under another name. Done when: each scene folder holds nine files. Cheaper substitute: only resizes, which never exercise orientation or recompression.
+- [ ] For each scene write the variants: original JPEG at quality 95, a 1200 x 900 resize, recompressions at quality 60 and 85, a PNG, a copy rotated in pixels and corrected through the EXIF orientation tag, a WebP, an AVIF, a light edit (brightness +6%), a 10% crop, and a byte-identical copy under another name. Done when: each scene folder holds eleven files. Cheaper substitute: only resizes, which never exercise orientation or recompression.
+- [ ] Write EXIF `DateTimeOriginal` and `Model` into every JPEG, with a different date per scene and the resize dated one day later than its original, and record each file's expected capture date, camera and upright pixel size in the manifest. Done when: the manifest holds the three values for every file, with empty date and camera for the PNG. Cheaper substitute: files with no metadata, which leave the date and camera code untested.
+- [ ] Write the first scene also as BMP, GIF and TIFF, labelled duplicates of it. Done when: the three files exist and are in the manifest. Cheaper substitute: leaving three supported formats with no test file.
 - [ ] Add at least six near-miss pairs: scenes that share a layout and palette but are different pictures (a shifted horizon, a different foreground). Done when: the files exist under `build/fixtures/near-miss/`. Cheaper substitute: leaving out the cases that prove the limits are not too loose.
 - [ ] Write `build/fixtures/manifest.json` listing every file and, for every pair of files in a scene, the label `duplicate` with the expected kind, and for every near-miss pair the label `different`. Done when: the manifest loads and names every file on disk. Cheaper substitute: labels inferred from folder names inside each test.
 - [ ] Call the generator from `scripts/check.ps1` before the tests when `build/fixtures/manifest.json` is missing or older than the script. Done when: a fresh clone's first check creates the fixtures. Cheaper substitute: committing the generated images.
@@ -201,16 +204,17 @@ The two format families the generator cannot write.
 
 **Build order:**
 
-1. Produce the samples. Done when: three small files are committed with their provenance.
+1. Produce the samples. Done when: four small files are committed with their provenance.
 2. List them in the manifest. Done when: tests can find them.
 
 - [ ] Produce one HEIC file from a generated scene with libheif's own encoder (the `heif-enc` tool of the vcpkg `libheif` port, with an encoder feature enabled for the host tool only), at most 300 KB. Done when: `tests/fixtures/samples/scene01.heic` exists and Windows Photos or `heif-info` opens it. Cheaper substitute: renaming a JPEG to `.heic`, which tests nothing.
+- [ ] Produce a second HEIC, `scene02-rotated.heic`, whose pixels are stored turned 90 degrees with an `irot` transformation that turns them back, and carry EXIF capture date and camera model in both HEIC files. Done when: `heif-info` reports the rotation and the manifest records each file's upright pixel size, date and camera. Cheaper substitute: an upright HEIC only, which never exercises the transformation phones use.
 - [ ] Produce one DNG file from a generated scene with a small script, `tests/fixtures/make_dng.py`, writing an uncompressed linear DNG, at most 1 MB, and one with an embedded JPEG preview at least 1024 wide. Done when: LibRaw's `raw-identify` reads both. Cheaper substitute: a camera vendor's sample file, whose licence does not allow redistribution.
 - [ ] Add `tests/fixtures/samples/README.md` stating how each file was made, from which scene, and that they are the project's own work under GPL-3.0-or-later. Done when: every file in the folder is named there. Cheaper substitute: unexplained binary files in a public repository.
 - [ ] Extend the manifest so each sample is labelled a duplicate of its scene. Done when: the manifest verify step counts them. Cheaper substitute: tests that hardcode the sample paths.
 - [ ] Commit: `tests: HEIC and DNG sample files`
 
-**Test checkpoint:** `python tests/fixtures/make_fixtures.py --out build/fixtures --verify` exits 0 and reports three samples, and exits 1 when a sample is missing.
+**Test checkpoint:** `python tests/fixtures/make_fixtures.py --out build/fixtures --verify` exits 0 and reports four samples, and exits 1 when a sample is missing.
 
 ## 9. Brand build script: icon, wordmark, banners, installer images
 

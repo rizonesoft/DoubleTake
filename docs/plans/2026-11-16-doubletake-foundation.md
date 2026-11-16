@@ -15,7 +15,7 @@ Each was made by the owner on 2026-11-16 unless marked otherwise. Reversing one 
 | D1 | Windows only, x64, Windows 10 version 1809 and later. No other platform is planned. |
 | D2 | C++20 with MSVC. All projects are MSBuild projects in one solution. No C#, no Rust. |
 | D3 | The interface is WinUI 3 (Windows App SDK) in C++/WinRT, unpackaged and self-contained. |
-| D4 | Libraries come from vcpkg in manifest mode (BLAKE3, SQLite, libheif, LibRaw, Catch2) and from NuGet (Windows App SDK, C++/WinRT, ONNX Runtime with DirectML). |
+| D4 | Libraries come from vcpkg in manifest mode (BLAKE3, SQLite, libheif, libwebp, LibRaw, Catch2) and from NuGet (Windows App SDK, C++/WinRT, ONNX Runtime with DirectML). |
 | D5 | Matching is perceptual hashing (our own dHash and pHash). ML similarity is an optional setting, off by default, and its model is downloaded only when the user turns it on. |
 | D6 | Unwanted copies go to the Recycle Bin through `IFileOperation`. The app never deletes a file outright. |
 | D7 | Updates are a notice only. The app reads a small version file and opens the download page in the browser. It never downloads or installs an update, and is never distributed through the Microsoft Store. |
@@ -37,7 +37,7 @@ Each was made by the owner on 2026-11-16 unless marked otherwise. Reversing one 
 | `src/engine/` | `doubletake-engine`, a static library: scan, decode, hash, match, index, recycle, restore |
 | `src/appcore/` | `doubletake-appcore`, a static library: view models, settings, update check, text formatting |
 | `src/app/` | `DoubleTake`, the WinUI 3 executable: XAML pages and the thin code that binds them to `appcore` |
-| `src/cli/` | `doubletake-cli`, a console program over the engine, used by tests and never installed |
+| `src/cli/` | `doubletake-cli`, a console program over the engine, used by tests and never installed; every command requires `--data-dir` and refuses the app's own data folder |
 | `tests/engine/`, `tests/appcore/` | Catch2 test programs |
 | `tests/ui/` | `doubletake-uitests`, UI Automation tests that drive the running app |
 | `tests/fixtures/` | The script that generates the photo fixtures, and the few committed sample files it cannot generate |
@@ -50,7 +50,7 @@ Each was made by the owner on 2026-11-16 unless marked otherwise. Reversing one 
 ## 4. Build and tools
 
 - Visual Studio 2026 with the C++ desktop workload, toolset `v145`, Windows SDK `10.0.26100.0`. `scripts/build.ps1` finds the installation with `vswhere` and never assumes a path.
-- vcpkg is the copy bundled with Visual Studio (`VC\vcpkg\vcpkg.exe`), in manifest mode with MSBuild integration, triplet `x64-windows-static-md`.
+- vcpkg is the copy bundled with Visual Studio (`VC\vcpkg\vcpkg.exe`), in manifest mode with MSBuild integration, triplet `x64-windows-static`. Every project and every vcpkg library uses the static C runtime with the Hybrid CRT link settings of the Windows App SDK's guidance, so the installed app needs no Visual C++ redistributable; a shipped third-party DLL that needs the runtime gets Microsoft's redistributable DLLs beside it.
 - NuGet packages are restored by `nuget restore DoubleTake.sln` and pinned in `packages.config` files.
 - `pwsh scripts/build.ps1 [-Configuration Debug|Release]` restores and builds the solution. `pwsh scripts/check.ps1` builds Debug, runs every test program, and runs the plan checks; it is the one command that must pass before a section is reviewed. Full builds and full test runs go through `bosun run --` when `bosun` is installed.
 - `scripts/gen-compile-commands.py` writes `build/compile_commands.json` for clangd from the MSBuild projects.
@@ -66,21 +66,22 @@ The engine is plain C++20 over Win32 and COM. It has no dependency on XAML or Wi
 - Walk each folder with `std::filesystem::recursive_directory_iterator`, skipping reparse points, and hidden and system folders unless the setting allows them. A folder that cannot be opened is recorded and the walk continues.
 - A file is a photo when its extension is in the format table (5.2). Files below the minimum pixel size are left out after decoding.
 - Work runs on a pool of `hardware_concurrency - 1` threads (at least 1). Progress is published at most ten times a second.
-- A file whose path, size and modified time match its index row is not read again.
+- A file whose path, size and modified time match its index row is not decoded again. The current options (minimum size, RAW, hidden folders) are still applied to it from its stored facts on every scan.
 
 ### 5.2 Decode
 
 | Formats | Decoder |
 | --- | --- |
-| JPEG, PNG, BMP, GIF (first frame), TIFF, WebP | Windows Imaging Component |
-| HEIC, HEIF, AVIF | libheif |
-| CR2, CR3, NEF, ARW, DNG, RAF, ORF, RW2 | LibRaw, using the embedded preview when it is at least 1024 wide, else a half-size decode |
+| JPEG, PNG, BMP, GIF (first frame), TIFF | Windows Imaging Component |
+| WebP (first frame) | libwebp, so it does not depend on a Windows codec extension |
+| HEIC, HEIF, AVIF | libheif, built with an HEVC decoder and an AV1 decoder |
+| CR2, CR3, NEF, ARW, DNG, RAF, ORF, RW2 | LibRaw, using the embedded preview when it is at least 1024 wide, else a half-size decode; a full-size decode when the caller asks for the photo's own pixel size |
 
 Every decoder returns 8-bit BGRA with the EXIF orientation already applied, at a requested longest side, so hashing asks for a small image and the compare panes ask for a large one. EXIF capture date and camera model are read at the same time.
 
 ### 5.3 Hashes
 
-- **Exact:** BLAKE3 of the file bytes, computed only for files that share a size with another file.
+- **Exact:** BLAKE3 of the file bytes, computed only for files that share a size with another file. This is decided apart from the unchanged-file skip: an unchanged file with no BLAKE3 is hashed as soon as another file of its size appears.
 - **dHash:** reduce to 9 x 8 grey by area averaging; each bit is whether a pixel is brighter than its right neighbour. 64 bits.
 - **pHash:** reduce to 32 x 32 grey, take the two-dimensional DCT-II and keep the top-left 8 x 8 block of coefficients; each bit is whether a coefficient is above the median of the block, with the DC term left out of the median. 64 bits.
 - Grey is Rec. 601 luma of the sRGB values. Both hashes must give the same value on every machine for the same pixels, so the DCT uses a fixed table and no fast-math.
@@ -118,16 +119,17 @@ One SQLite database, `%LOCALAPPDATA%\DoubleTake\index.db`, in WAL mode, with `PR
 | `members` | group, file, mark |
 | `undo_log` | scan, group, the marks before each of the last 100 decisions |
 | `cleanups` | scan, time, photo count, bytes, state |
-| `cleanup_files` | clean-up, original path, size, the kept file's path, restored |
+| `cleanup_files` | clean-up, original path, size, the kept file's path, state (pending or recycled), the Recycle Bin item's identity, deletion time, restored |
 
 A database that cannot be opened or migrated is reported, never silently replaced. Clearing the index removes scan data (`files`, `scans`, `groups`, `members`, `undo_log`) and keeps the clean-up tables, so History survives.
 
 ### 5.7 Recycle and restore
 
 - Recycling takes the files marked recycle in decided groups. Before each file moves, its size and modified time are checked against the index; a file that changed or is gone is skipped and counted.
-- Files move with `IFileOperation` and `FOFX_RECYCLEONDELETE`, with no shell prompts. A file on a volume with no Recycle Bin is skipped and counted, never deleted.
-- Each clean-up is written to `cleanups` and `cleanup_files` as files move, so a crash loses no record.
-- Restore finds each file in the Recycle Bin by its original path and deletion time through the Recycle Bin shell folder and invokes the shell's own restore. A clean-up's state is read back from the bin: all there, some there, none there.
+- Files move with `IFileOperation` and `FOFX_RECYCLEONDELETE`, with no shell prompts. A progress sink refuses any item the shell would delete outright (recycling turned off, a file too large for the bin, a volume with no bin): that file is skipped and counted, never deleted.
+- Before a group's files move, at least one photo being kept must still be on disk and unchanged since the scan. Otherwise the whole group is left alone.
+- Each file gets a `pending` row before it moves and is confirmed, with the identity of its Recycle Bin item, after. Pending rows left by a crash are reconciled when the index next opens, so no moved file is without a record.
+- Restore finds each file by the stored identity of its Recycle Bin item, checks the item's original location, and invokes the shell's own restore. A file with no stored identity is restored only when exactly one bin item matches its path and deletion time. Restore never overwrites a file that now exists at the original path. A clean-up's state is read back from the bin: all there, some there, none there.
 
 ### 5.8 Logging
 
@@ -148,6 +150,9 @@ A text log at `%LOCALAPPDATA%\DoubleTake\logs\doubletake.log`, rotated at 1 MB w
 - Runtime: ONNX Runtime with the DirectML provider and a CPU fallback, shipped in the installer.
 - Model: DINOv2 ViT-S/14 in ONNX form (Apache-2.0), pinned by URL, size and SHA-256 in `resources/model.json`. The candidate source is the Hugging Face repository `onnx-community/dinov2-small`; the section that pins it must confirm the file exists and its licence before relying on it, and otherwise export the model itself and host it as a GitHub release asset.
 - The model is downloaded to `%LOCALAPPDATA%\DoubleTake\models\` only after the user agrees, verified against its SHA-256, and deleted if the check fails.
+- The image is prepared exactly as the pinned model's own preprocessing configuration says (resize, crop, filter, normalisation), recorded in `resources/model.json` and checked against reference tensors.
+- The download starts at the pinned host and follows redirects only to the hosts recorded when the model was pinned.
+- `dt::scan_and_group` owns the whole sequence: read and hash, form duplicate groups, embed the photos no duplicate group claimed, form Similar groups, save.
 - Embeddings are computed for photos no hash group claimed, stored in `files.embedding`, and compared by cosine similarity. Pairs above 0.90 form `Similar` groups, shown after the duplicate groups and never mixed with them. The limit is set by the fixture test.
 
 ## 8. Testing
@@ -160,7 +165,7 @@ A text log at `%LOCALAPPDATA%\DoubleTake\logs\doubletake.log`, rotated at 1 MB w
 
 ## 9. Release
 
-- `version.props` is the only place the version is written. The app, the installer and `version.json` read it.
+- `version.props` is the only place the version being built is written; the app and the installer read it. `version.json` names the newest published version and is updated by its own command only after a release is published, so installed copies never hear of a version they cannot download.
 - `installer/DoubleTake.iss` installs per user to `%LOCALAPPDATA%\Programs\DoubleTake`, adds a Start menu entry and an uninstaller, and leaves the user's index and settings in place on uninstall unless asked.
 - A release workflow builds Release on a tag, compiles the installer, and attaches it and its SHA-256 to a draft GitHub release. Publishing the release is the owner's step.
 - `NOTICE.md` lists every third-party component with its licence, generated from the vcpkg and NuGet manifests, and is installed with the app.
