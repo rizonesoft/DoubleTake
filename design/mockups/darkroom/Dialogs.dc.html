@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Darkroom recycle dialog and update notice</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; box-sizing: border-box; background: #141312; color: #F2EEE8; font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif; font-size: 14px; display: flex; flex-direction: column; overflow: hidden">
+  <div style="height: 48px; flex-shrink: 0; display: flex; align-items: center; padding-left: 14px; gap: 10px; border-bottom: 1px solid #292623">
+    <svg viewBox="0 0 256 256" aria-hidden="true" style="width: 22px; height: 22px; display: block"><rect x="16" y="16" width="224" height="224" rx="52" fill="#292623"></rect><path d="M128 77.4 A56 56 0 0 1 128 178.6 A56 56 0 0 1 128 77.4 Z" fill="#F5A524"></path><circle cx="104" cy="128" r="56" fill="none" stroke="#F2EEE8" stroke-width="14"></circle><circle cx="152" cy="128" r="56" fill="none" stroke="#F2EEE8" stroke-width="14"></circle></svg>
+    <span style="font-family: 'Space Grotesk', 'Segoe UI', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: -0.02em; margin-right: 20px">doubletake</span>
+    <nav aria-label="Main" style="display: flex; gap: 4px; height: 48px; align-items: stretch">
+      <a href="Scan.dc.html" style="padding: 0 14px; display: flex; align-items: center; color: #B5ADA2; text-decoration: none">Scan</a>
+      <a href="Review.dc.html" aria-current="page" style="position: relative; padding: 0 14px; display: flex; align-items: center; color: #F2EEE8; font-weight: 600; text-decoration: none">Review<span style="position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; background: #F5A524"></span></a>
+      <a href="History.dc.html" style="padding: 0 14px; display: flex; align-items: center; color: #B5ADA2; text-decoration: none">History</a>
+    </nav>
+    <div style="flex-grow: 1"></div>
+    <button aria-label="Minimise" style="width: 46px; height: 48px; border: 0; background: transparent; color: #F2EEE8; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 10 10" aria-hidden="true" style="width: 10px; height: 10px"><path d="M0 5h10" stroke="currentColor" stroke-width="1"></path></svg></button>
+    <button aria-label="Maximise" style="width: 46px; height: 48px; border: 0; background: transparent; color: #F2EEE8; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 10 10" aria-hidden="true" style="width: 10px; height: 10px"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1"></rect></svg></button>
+    <button aria-label="Close" style="width: 46px; height: 48px; border: 0; background: transparent; color: #F2EEE8; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 10 10" aria-hidden="true" style="width: 10px; height: 10px"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" stroke-width="1"></path></svg></button>
+  </div>
+  <div role="status" style="height: 48px; flex-shrink: 0; background: #292623; display: flex; align-items: center; gap: 14px; padding: 0 8px 0 16px">
+    <svg viewBox="0 0 20 20" aria-hidden="true" style="width: 18px; height: 18px; color: #F5A524" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15V5M5.5 9.5L10 5l4.5 4.5"></path></svg>
+    <span style="font-weight: 600">DoubleTake 0.2.0 is out.</span>
+    <span style="color: #B5ADA2; flex-grow: 1">You have 0.1.0. The download page opens in your browser.</span>
+    <button style="height: 32px; padding: 0 14px; border: 0; border-radius: 6px; background: #F5A524; color: #1A1408; font: inherit; font-weight: 600">Get the new version</button>
+    <button aria-label="Dismiss" style="width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; color: #B5ADA2; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 10 10" aria-hidden="true" style="width: 10px; height: 10px"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" stroke-width="1.3"></path></svg></button>
+  </div>
+  <div style="position: relative; flex-grow: 1; min-height: 0; background: #0A0A09; display: flex; align-items: center; justify-content: center">
+    <div role="dialog" aria-labelledby="dlg-title" aria-modal="true" style="width: 480px; background: #1E1C1A; border: 1px solid #3A3632; border-radius: 10px; overflow: hidden">
+      <div style="padding: 24px 24px 20px; display: flex; flex-direction: column; gap: 12px">
+        <h2 id="dlg-title" style="margin: 0; font-family: 'Space Grotesk', 'Segoe UI', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em">Move 27 photos to the Recycle Bin?</h2>
+        <p style="margin: 0; color: #B5ADA2">Every group keeps at least one photo. The 27 marked RECYCLE go to the Recycle Bin, where you can restore them from History until the bin is emptied.</p>
+        <dl style="margin: 4px 0 0; display: grid; grid-template-columns: 1fr auto; row-gap: 6px; font-size: 13px">
+          <dt style="color: #B5ADA2">Photos to recycle</dt><dd style="margin: 0; text-align: right">27 in 11 groups</dd>
+          <dt style="color: #B5ADA2">Space freed once the bin is emptied</dt><dd style="margin: 0; text-align: right; color: #F5A524; font-weight: 600">412 MB</dd>
+        </dl>
+      </div>
+      <div style="padding: 16px 24px; background: #141312; border-top: 1px solid #292623; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <button style="height: 36px; border: 0; border-radius: 6px; background: #F5A524; color: #1A1408; font: inherit; font-weight: 700">Move to Recycle Bin</button>
+        <button style="height: 36px; border: 1px solid #5A544D; border-radius: 6px; background: #292623; color: #F2EEE8; font: inherit">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

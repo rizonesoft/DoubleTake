@@ -1,0 +1,8 @@
+build/
+vcpkg_installed/
+packages/
+.vs/
+*.user
+__pycache__/
+*.pyc
+*.replaced

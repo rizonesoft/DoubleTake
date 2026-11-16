@@ -1,0 +1,13 @@
+* text=auto
+
+# Read by Git's own shell and by Python on every host: a CR breaks them, whatever the clone's autocrlf says.
+*.py text eol=lf
+*.sh text eol=lf
+scripts/hooks/* text eol=lf
+
+*.png binary
+*.ico binary
+*.ttf binary
+*.heic binary
+*.dng binary
+*.onnx binary

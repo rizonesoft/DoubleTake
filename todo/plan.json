@@ -1,0 +1,13 @@
+{
+  "title": "DoubleTake implementation plan",
+  "acceptance": "every screen and state in design/SPEC.md works end to end on real photo folders and matches its mockup, and the Inno Setup installer installs, runs and uninstalls the app",
+  "phases": {
+    "0": "Repository and tooling",
+    "1": "Engine",
+    "2": "Application shell",
+    "3": "Screens",
+    "4": "Similar shots",
+    "5": "Release",
+    "99": "Manual, operator only"
+  }
+}
