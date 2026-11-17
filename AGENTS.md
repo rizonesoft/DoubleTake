@@ -37,7 +37,7 @@ Rules specific to DoubleTake:
 - **Licence.** The project is GPL-3.0-or-later. Every new dependency is checked for compatibility and recorded in `NOTICE.md` before it is used.
 - **No in-app updating and no Microsoft Store.** The app only tells the user a new version exists and opens the download page (decision D7).
 
-Who writes and who reviews: Claude Code (`opus`) or Antigravity writes; Codex (GPT-6 Astra, read-only) reviews, as pinned in `.conclave/reviewers.toml`. The writer never reviews its own work.
+Who writes and who reviews: Claude Code (`opus`) or Antigravity writes; Codex (GPT-6.2 Astra, read-only) reviews, as pinned in `.conclave/reviewers.toml`. The writer never reviews its own work.
 
 ## Goal
 
